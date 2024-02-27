@@ -24,6 +24,7 @@ HAVING COUNT(*) > 50
 -- Необходимо выделить все сессии, которые начинаются раньше, 
 -- чем закончилась предшествующая сессия в рамках каждого пользователя.
 
+
 WITH SessionsRanked AS (
     SELECT *,
            ROW_NUMBER() OVER (PARTITION BY uid ORDER BY stop_dttm) as SessionRank 
@@ -33,9 +34,6 @@ SELECT s1.*
 FROM SessionsRanked s1
 JOIN SessionsRanked s2 ON s1.uid = s2.uid AND s1.SessionRank = s2.SessionRank + 1
 WHERE s1.start_dttm < s2.stop_dttm
-
-
-
 
 -- Задание 3
 -- Необходимо выделить ТОП-10 самых посещаемых станций.
@@ -55,17 +53,13 @@ LIMIT 10
 -- Необходимо найти для каждого пользователя станцию, 
 -- на которой он чаще всего заканчивает свой день.
 
-WITH UserDailyEndStation AS (
+SELECT uid, stop_station
+FROM (
     SELECT 
         uid, 
-        stop_station, 
-        COUNT(*) as station_count,
+        stop_station,
         ROW_NUMBER() OVER (PARTITION BY uid ORDER BY COUNT(*) DESC) as StationRank
     FROM wifi_session
-    GROUP BY uid, stop_station, CAST(stop_dttm AS DATE)
-)
-SELECT uid, stop_station
-FROM UserDailyEndStation
+    GROUP BY uid, stop_station
+) AS RankedStations
 WHERE StationRank = 1;
-
-
