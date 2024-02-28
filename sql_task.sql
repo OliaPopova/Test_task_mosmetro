@@ -35,6 +35,8 @@ FROM SessionsRanked s1
 JOIN SessionsRanked s2 ON s1.uid = s2.uid AND s1.SessionRank = s2.SessionRank + 1
 WHERE s1.start_dttm < s2.stop_dttm
 
+
+
 -- Задание 3
 -- Необходимо выделить ТОП-10 самых посещаемых станций.
 
@@ -49,17 +51,35 @@ ORDER BY visit_count DESC
 LIMIT 10
 
 
+
 -- Здание 4
 -- Необходимо найти для каждого пользователя станцию, 
 -- на которой он чаще всего заканчивает свой день.
 
-SELECT uid, stop_station
-FROM (
-    SELECT 
-        uid, 
-        stop_station,
-        ROW_NUMBER() OVER (PARTITION BY uid ORDER BY COUNT(*) DESC) as StationRank
-    FROM wifi_session
-    GROUP BY uid, stop_station
-) AS RankedStations
-WHERE StationRank = 1;
+
+
+WITH LastStationPerDay AS (
+    SELECT
+        uid,
+        MAX(stop_dttm) AS last_session_time
+    FROM
+        wifi_session
+    GROUP BY
+        uid,
+        CAST(stop_dttm AS DATE) 
+),
+LastStationInfo AS (
+    SELECT
+        t.uid,
+        t.stop_station AS end_station,
+        t.stop_dttm
+    FROM
+        wifi_session t
+    JOIN
+        LastStationPerDay l ON t.uid = l.uid AND t.stop_dttm = l.last_session_time
+)
+SELECT
+    uid,
+    end_station
+FROM
+    LastStationInfo;
